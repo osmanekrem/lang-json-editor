@@ -1,0 +1,37 @@
+{
+    "field1": "TR",
+    "page1": {
+        "feature1": {
+            "button1.1": "Button 1 TR",
+            "button1.2": "Button 2 TR",
+            "button1.3": ""
+        },
+        "feature2": {
+            "button2.1": "Button 1 TR",
+            "button2.2": "",
+            "button2.3": "Button 3 TR"
+        },
+        "feature3": {
+            "button3.1": "Button 1 TR",
+            "button3.2": "Button 2 TR",
+            "button3.3": "Button 3 TR"
+        }
+    },
+    "page2": {
+        "feature1": {
+            "button1.1": "",
+            "button1.2": "",
+            "button1.3": "Button 3 TR"
+        },
+        "feature2": {
+            "button2.1": "Button 1 TR",
+            "button2.2": "Button 2 TR",
+            "button2.3": ""
+        },
+        "feature3": {
+            "button3.1": "",
+            "button3.2": "Button 2 TR",
+            "button3.3": ""
+        }
+    }
+}

@@ -1,113 +1,255 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+import Collapse from "@/components/collapse";
+import { useLang } from "@/hooks/use-lang";
+import LangDropdown from "@/components/lang-dropdown";
+import { langDataStore } from "@/hooks/use-lang-data";
+import { writeFile } from "@/actions/write-file";
+import { readFile } from "@/actions/read-file";
 
 export default function Home() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const { lang, langs } = useLang((state: any) => state);
+  const {
+    langData,
+    setLangData,
+  } = langDataStore((state: any) => state);
+
+  const [data, setData] = useState<any>({})
+  const [fetched, setFetched] = useState(false)
+
+  const [showJson, setShowJson] = useState<boolean>(false);
+
+  const getData = async () => {
+    const data = await readFile("langdata.json") 
+    
+      Object.keys(data).forEach(lang => {
+        
+        setLangData(data[lang], lang)
+      })
+      console.log(langData, data);
+      
+      setData(data[lang])
+      console.log(data);
+      setFetched(true)
+  }
+
+  useEffect(() => {
+    getData()
+    console.log(data, langData);
+    
+  }, [lang]);  
+
+  if ( !data) return "loading...";
+
+  const collapseCheck = (
+    data: any,
+    handleChange: (path: string[], value: string) => void,
+    handleKeyChange: (path: string[], newKey: string, value: string) => void,
+    path: string[] = []
+  ) => {
+    return Object.keys(data).map((key, i) => {
+      const currentPath = [...path, key];
+      const value = data[key];
+      if (typeof value === "object" && value !== null) {
+        const { totalKeys, filledValueKeys } = countKeysAndEmptyValues(
+          data[key]
+        );
+        return (
+          <Collapse
+            key={i}
+            total={totalKeys}
+            filled={filledValueKeys}
+            header={key}
+            handleKeyChange={handleKeyChange}
+            path={currentPath}
+            value={value}
+            addKey={addKey}
           >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
+            {collapseCheck(value, handleChange, handleKeyChange, currentPath)}
+          </Collapse>
+        );
+      } else {
+        return (
+          <div className="flex rounded items-center border w-full gap-x-2 pr-2" key={i}>
+          <div
+            className="grid grid-cols-2 h-12 flex-1 items-center"
+          >
+            <input
+              className="h-8 px-3 focus:outline-none"
+              value={key}
+              onChange={(e) =>
+                handleKeyChange(currentPath, e.target.value, value)
+              }
             />
-          </a>
+            <input
+              className="border-l h-8 px-3 focus:outline-none"
+              value={value}
+              onChange={(e) => handleChange(currentPath, e.target.value)}
+            />
+          </div>
+          
+            <button className="h-8 flex items-center justify-center text-center w-8 rounded-full hover:bg-gray-100" onClick={() => addKey(currentPath)}>+</button>
+            
+          </div>
+        );
+      }
+    });
+  };
+
+  function countKeysAndEmptyValues(obj) {
+    let totalKeys = 0;
+    let filledValueKeys = 0;
+
+    function traverse(obj) {
+      if (typeof obj === "object" && obj !== null) {
+        for (const key in obj) {
+          if (typeof obj[key] === "object") {
+            traverse(obj[key]);
+          } else if (typeof obj[key] === "string") {
+            totalKeys++;
+            if (obj[key] !== "") filledValueKeys++;
+          }
+        }
+      }
+    }
+
+    traverse(obj);
+    return { totalKeys, filledValueKeys };
+  }
+
+  const handleChange = (path: string[], value: string) => {
+    let tempData = { ...data };
+
+    let current = tempData;
+    for (const key of path.slice(0, -1)) {
+      current = current[key];
+    }
+    current[path[path.length - 1]] = value;
+
+    setData(tempData);
+    setLangData(tempData,lang);
+  };
+
+  const addKey = (path: string[]) => {
+
+    const randomname = "key"+Math.random()*1000
+    langs.forEach((lang: any) => {
+      let tempData = { ...langData[lang] };
+
+      let current = tempData;
+      for (const key of path.slice(0, -1)) {
+        current = current[key];
+      }
+      if(typeof current[path[path.length - 1]] === "object") {
+
+        current[path[path.length - 1]] = { ...current[path[path.length - 1]], [randomname]: "" };
+      } else {
+        current[path[path.length - 1]] = {[randomname]: "" };
+
+      }
+
+      setLangData(tempData,lang);
+    })
+  };
+
+  const handleKeyChange = (path: string[], newKey: string, value: string) => {
+    const newData = { ...data };
+    let current = newData;
+
+    for (const key of path.slice(0, -1)) {
+      current = current[key];
+    }
+
+    let tempKeys = Object.keys(current);
+    tempKeys[tempKeys.indexOf(path[path.length - 1])] = newKey;
+
+    let tempCurrent = {};
+    tempKeys.forEach((key) => {
+      tempCurrent[key] = current[key];
+    });
+
+    tempCurrent[newKey] = value;
+
+    let newDataPointer = newData;
+    if (path.length < 2) {
+      setData(tempCurrent);
+    } else {
+      for (const key of path.slice(0, -2)) {
+        newDataPointer = newDataPointer[key];
+      }
+      newDataPointer[path[path.length - 2]] = tempCurrent;
+      setData(newData);
+    }
+
+    langs.map((lang: any) => {
+      const newData = { ...langData[lang] };
+      let current = newData;
+
+      for (const key of path.slice(0, -1)) {
+        current = current[key];
+      }
+
+      let tempKeys = Object.keys(current);
+      tempKeys[tempKeys.indexOf(path[path.length - 1])] = newKey;
+
+      let tempCurrent = {};
+      tempKeys.forEach((key) => {
+        tempCurrent[key] = current[key];
+      });
+
+      tempCurrent[newKey] = value;
+
+      let newDataPointer = newData;
+      if (path.length < 2) {
+        setLangData(tempCurrent,lang)
+      } else {
+        for (const key of path.slice(0, -2)) {
+          newDataPointer = newDataPointer[key];
+        }
+        newDataPointer[path[path.length - 2]] = tempCurrent;
+        setLangData(newData,lang);
+      }
+    })
+  };
+
+  const collapsed = collapseCheck(data, handleChange, handleKeyChange);
+
+  return (
+    <div className="p-4">
+      <header className="flex items-center justify-between h-12">
+        <LangDropdown />
+
+        <div className="flex items-center gap-x-2">
+          <button
+            className="h-8 px-3 rounded border flex items-center justify-center"
+            onClick={() => {
+              navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+            }}
+          >
+            copy to clipboard
+          </button>
+          <button
+            className="h-8 w-8 rounded border flex items-center justify-center"
+            onClick={() => setShowJson((prev) => !prev)}
+          >
+            {"{ }"}
+          </button>
+          <button
+            className="h-8 px-3 rounded border flex items-center justify-center"
+            onClick={async () => {
+               await writeFile('langdata.json', langData)
+            }}
+          >
+            Save
+          </button>
         </div>
+      </header>
+      <div className="flex flex-col mt-10 w-full gap-y-4">
+        {countKeysAndEmptyValues(data).filledValueKeys}/
+        {countKeysAndEmptyValues(data).totalKeys}
+        {!showJson ? collapsed : <pre>{JSON.stringify(data, null, 2)}</pre>}
       </div>
-
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </div>
   );
 }
