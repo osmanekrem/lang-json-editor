@@ -5,8 +5,9 @@ import Collapse from "@/components/collapse";
 import { useLang } from "@/hooks/use-lang";
 import LangDropdown from "@/components/lang-dropdown";
 import { langDataStore } from "@/hooks/use-lang-data";
-import { writeFile } from "@/actions/write-file";
-import { readFile } from "@/actions/read-file";
+import { writeFile } from "@/utils/write-file";
+import { readFile } from "@/utils/read-file";
+import { countKeysAndEmptyValues } from "@/utils/count-keys-and-empty-values";
 
 export default function Home() {
   const { lang, langs } = useLang((state: any) => state);
@@ -16,7 +17,6 @@ export default function Home() {
   } = langDataStore((state: any) => state);
 
   const [data, setData] = useState<any>({})
-  const [fetched, setFetched] = useState(false)
 
   const [showJson, setShowJson] = useState<boolean>(false);
 
@@ -24,21 +24,19 @@ export default function Home() {
     const data = await readFile("langdata.json") 
     
       Object.keys(data).forEach(lang => {
-        
         setLangData(data[lang], lang)
       })
-      console.log(langData, data);
       
       setData(data[lang])
-      console.log(data);
-      setFetched(true)
   }
 
   useEffect(() => {
     getData()
-    console.log(data, langData);
-    
   }, [lang]);  
+
+  useEffect(() => {
+    setData(langData[lang])
+  }, [langData])
 
   if ( !data) return "loading...";
 
@@ -97,27 +95,6 @@ export default function Home() {
     });
   };
 
-  function countKeysAndEmptyValues(obj) {
-    let totalKeys = 0;
-    let filledValueKeys = 0;
-
-    function traverse(obj) {
-      if (typeof obj === "object" && obj !== null) {
-        for (const key in obj) {
-          if (typeof obj[key] === "object") {
-            traverse(obj[key]);
-          } else if (typeof obj[key] === "string") {
-            totalKeys++;
-            if (obj[key] !== "") filledValueKeys++;
-          }
-        }
-      }
-    }
-
-    traverse(obj);
-    return { totalKeys, filledValueKeys };
-  }
-
   const handleChange = (path: string[], value: string) => {
     let tempData = { ...data };
 
@@ -141,12 +118,12 @@ export default function Home() {
       for (const key of path.slice(0, -1)) {
         current = current[key];
       }
+      
       if(typeof current[path[path.length - 1]] === "object") {
 
         current[path[path.length - 1]] = { ...current[path[path.length - 1]], [randomname]: "" };
       } else {
         current[path[path.length - 1]] = {[randomname]: "" };
-
       }
 
       setLangData(tempData,lang);
@@ -164,7 +141,7 @@ export default function Home() {
     let tempKeys = Object.keys(current);
     tempKeys[tempKeys.indexOf(path[path.length - 1])] = newKey;
 
-    let tempCurrent = {};
+    let tempCurrent:any = {};
     tempKeys.forEach((key) => {
       tempCurrent[key] = current[key];
     });
@@ -193,7 +170,7 @@ export default function Home() {
       let tempKeys = Object.keys(current);
       tempKeys[tempKeys.indexOf(path[path.length - 1])] = newKey;
 
-      let tempCurrent = {};
+      let tempCurrent:any = {};
       tempKeys.forEach((key) => {
         tempCurrent[key] = current[key];
       });

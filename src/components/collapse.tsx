@@ -18,14 +18,14 @@ const Collapse: FC<CollapseProps> = ({ header, children, filled, total,handleKey
     <div className="border rounded-md flex flex-col w-full">
       <div
         className="h-12 flex px-4 items-center justify-between cursor-pointer"
-        onClick={() => setOpen((prev) => !prev)}
       >
         <input value={header} onChange={(e) => handleKeyChange(path,e.target.value,value)}/>{" "}{filled}/{total}
         <div className="flex items-center gap-x-2">
         <button onClick={() => addKey(path)} className="h-8 flex items-center justify-center w-8 rounded-full hover:bg-gray-100">
           +
         </button>
-        <button className="h-8 flex items-center justify-center w-8 rounded-full hover:bg-gray-100">
+        <button className="h-8 flex items-center justify-center w-8 rounded-full hover:bg-gray-100"
+        onClick={() => setOpen((prev) => !prev)}>
           <span
             className={`h-2 border-black w-2 bg-transparent transition-transform duration-300 border-r-2 border-t-2 ${
               open ? "rotate-[135deg]" : "rotate-45"
