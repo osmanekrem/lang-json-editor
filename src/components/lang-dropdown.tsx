@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import {useLang} from "../hooks/use-lang";
-import langs from "../data/langs.json"
+import {langs} from "@/data/data"
+import { langDataStore } from "@/hooks/use-lang-data";
 
 export default function LangDropdown() {
     const [open, setOpen] = useState<boolean>(false)
 
-    const {lang, setLang} = useLang((state:any) => state)
+    const {lang, setLang} = langDataStore((state:any) => state)
 
     const dropdownRef = useRef(null)
     const buttonRef = useRef(null)
@@ -28,11 +29,11 @@ export default function LangDropdown() {
         <div className="relative">
 
         <button ref={buttonRef} type="button" onClick={() => setOpen(prev => !prev)} className="h-8 px-3 rounded-md bg-white border">
-            {lang}
+            {lang.code}
         </button>
         {open && (<div ref={dropdownRef} className="rounded-md border p-2 bg-white flex flex-col absolute top-10 left-0">
             {langs.map((lang,i) => (
-                <button className="h-8 px-2 rounded hover hover:bg-gray-200" key={i} onClick={() => setLang(lang.code)}>{lang.text}</button>
+                <button className="h-8 px-2 rounded hover hover:bg-gray-200" key={i} onClick={() => setLang(lang)}>{lang.code}</button>
             ))}
         </div>)}
         </div>
